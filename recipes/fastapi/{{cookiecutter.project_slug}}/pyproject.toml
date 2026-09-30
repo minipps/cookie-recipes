@@ -1,0 +1,98 @@
+[project]
+name = {{ cookiecutter.project_slug | tojson }}
+version = "0.1.0"
+description = {{ cookiecutter.description | tojson }}
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "fastapi>=0.115,<1",
+    "httpx2>=2.13.1,<3",
+    "pydantic>=2.9,<3",
+    "tortoise-orm>=1.1.7,<2",
+    "uvicorn>=0.32,<1",
+]
+
+[dependency-groups]
+dev = [
+    "import-linter>=2.1,<3",
+    "ruff>=0.16,<1",
+    "ty>=0.0.1,<1",
+]
+
+[build-system]
+requires = ["uv_build>=0.12,<0.13"]
+build-backend = "uv_build"
+
+[tool.uv.build-backend]
+module-name = "{{ cookiecutter.module_name }}"
+
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+extend-exclude = ["src/{{ cookiecutter.module_name }}/db/migrations"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "SIM", "C4", "TID", "RUF", "ASYNC", "S", "DTZ"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S101"]
+
+[tool.ty.environment]
+python-version = "3.13"
+
+[tool.ty.src]
+include = ["src", "tests"]
+exclude = ["src/{{ cookiecutter.module_name }}/db/migrations"]
+
+[tool.ty.terminal]
+error-on-warning = true
+
+[tool.tortoise]
+tortoise_orm = "{{ cookiecutter.module_name }}.db.config.TORTOISE_ORM"
+
+[tool.importlinter]
+root_packages = ["{{ cookiecutter.module_name }}"]
+include_external_packages = true
+
+[[tool.importlinter.contracts]]
+name = "API accesses storage through services"
+type = "forbidden"
+source_modules = ["{{ cookiecutter.module_name }}.api"]
+forbidden_modules = ["{{ cookiecutter.module_name }}.db", "tortoise"]
+allow_indirect_imports = true
+
+[[tool.importlinter.contracts]]
+name = "Database never depends on the API or services"
+type = "forbidden"
+source_modules = ["{{ cookiecutter.module_name }}.db"]
+forbidden_modules = ["{{ cookiecutter.module_name }}.api", "{{ cookiecutter.module_name }}.services", "fastapi"]
+
+[[tool.importlinter.contracts]]
+name = "Services never depend on the API"
+type = "forbidden"
+source_modules = ["{{ cookiecutter.module_name }}.services"]
+forbidden_modules = ["{{ cookiecutter.module_name }}.api", "fastapi"]
+
+[[tool.importlinter.contracts]]
+name = "Domain stays independent of application layers and I/O"
+type = "forbidden"
+source_modules = ["{{ cookiecutter.module_name }}.domain"]
+forbidden_modules = [
+    "{{ cookiecutter.module_name }}.api",
+    "{{ cookiecutter.module_name }}.services",
+    "{{ cookiecutter.module_name }}.db",
+    "fastapi",
+    "tortoise",
+    "httpx2",
+]
+
+[[tool.importlinter.contracts]]
+name = "Only the composition root imports main"
+type = "forbidden"
+source_modules = [
+    "{{ cookiecutter.module_name }}.api",
+    "{{ cookiecutter.module_name }}.services",
+    "{{ cookiecutter.module_name }}.db",
+    "{{ cookiecutter.module_name }}.domain",
+]
+forbidden_modules = ["{{ cookiecutter.module_name }}.main"]
