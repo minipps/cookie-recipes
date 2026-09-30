@@ -1,0 +1,15 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    ports:
+      - "127.0.0.1:${PORT:-8000}:8000"
+    environment:
+      DATABASE_URL: sqlite:///data/db.sqlite3
+    volumes:
+      - data:/data
+    restart: unless-stopped
+
+volumes:
+  data:

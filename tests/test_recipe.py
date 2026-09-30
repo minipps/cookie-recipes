@@ -16,7 +16,7 @@ class RecipeTest(unittest.TestCase):
             cwd=project,
             capture_output=True,
             text=True,
-            timeout=180,
+            timeout=600,
             check=False,
         )
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
@@ -54,12 +54,12 @@ class RecipeTest(unittest.TestCase):
                     ("ruff", "check", "."),
                     ("ty", "check"),
                     ("lint-imports", "--no-cache"),
-                    ("python", "-m", "unittest", "discover", "-s", "tests", "-v"),
                     ("tortoise", "init"),
                     ("tortoise", "makemigrations", "--name", "initial"),
                     ("tortoise", "migrate"),
                     ("tortoise", "migrate"),
                     ("lint-imports", "--no-cache"),
+                    ("python", "-m", "unittest", "discover", "-s", "tests", "-v"),
                 ):
                     self.run_command(project, "run", *command)
                 self.assertTrue((project / "db.sqlite3").is_file())

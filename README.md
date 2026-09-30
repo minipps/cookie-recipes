@@ -9,7 +9,7 @@ uvx cookiecutter . --directory recipes/fastapi
 ```
 
 The recipe includes FastAPI, uv, Ruff, ty, import-linter, HTTPX2, and Tortoise ORM.
-It defaults to Python 3.13 and SQLite, with an example item API and a smoke test.
+It defaults to Python 3.13 and SQLite, with an example item API, smoke tests, and Docker Compose.
 
 Imports follow `api → services → db`, with shared Pydantic schemas in `domain`.
 Import-linter prevents direct API/database imports, reverse dependencies, and framework
@@ -27,3 +27,6 @@ uv run --no-project --with cookiecutter python -m unittest discover -s tests -v
 This renders the default recipe and a renamed project in temporary directories, installs their
 dependencies with uv, runs formatting, linting, typing, and API checks, and verifies that import
 contracts reject forbidden dependencies.
+
+Set `RUN_DOCKER_TESTS=1` on the same command to also build both generated projects' images
+and check SQLite persistence across container replacement. This requires Docker with Compose.

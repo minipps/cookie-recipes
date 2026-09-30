@@ -31,6 +31,32 @@ uv run tortoise migrate
 Apply migrations before starting the API. Startup opens connections without creating or
 changing tables. The test creates a disposable schema in an in-memory database.
 
+## Docker with SQLite
+
+Run the initial setup above to create `uv.lock` and migrations, then:
+
+```sh
+docker compose up --build --detach --wait
+docker compose logs --follow api
+docker compose down
+```
+
+The API listens on http://127.0.0.1:8000. Set `PORT` to change the host port.
+The non-root container stores SQLite at `/data/db.sqlite3` in the named `data` volume.
+Stopping or replacing containers preserves this volume; `docker compose down --volumes`
+deletes it. The image excludes local databases, secrets, development tools, and test files.
+
+The container applies committed Tortoise migrations before starting the API and exits if
+migration fails. Generate new migrations locally, commit them, and rebuild after model changes.
+Run one API container against this SQLite volume.
+
+To build without Compose:
+
+```sh
+docker build --file docker/Dockerfile --tag {{ cookiecutter.project_slug }} .
+docker run --rm --publish 127.0.0.1:8000:8000 --mount type=volume,src={{ cookiecutter.project_slug }}-data,dst=/data {{ cookiecutter.project_slug }}
+```
+
 ## Quality checks
 
 ```sh
@@ -40,6 +66,15 @@ uv run ty check
 uv run lint-imports
 uv run python -m unittest discover -s tests -v
 ```
+
+To also build the image and verify that SQLite data survives container replacement:
+
+```sh
+RUN_DOCKER_TESTS=1 uv run python -m unittest discover -s tests -v
+```
+
+This requires Docker with Compose and the initial lockfile and migrations. The test uses a
+temporary Compose project and port and removes its containers, image, and volume afterward.
 
 Use `uv run ruff format .` and `uv run ruff check --fix .` to apply formatting and safe lint fixes.
 
