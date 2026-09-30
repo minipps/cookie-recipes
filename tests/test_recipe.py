@@ -67,6 +67,8 @@ class RecipeTest(unittest.TestCase):
                         default_config={"replay_dir": directory},
                     )
                 )
+                frontend = recipe.name == "fastapi-vue"
+                python_project = project / "backend" if frontend else project
                 workflow_dir = project / ".github" / "workflows"
                 ci = load((workflow_dir / "ci.yml").read_text(), Loader=BaseLoader)
                 release_text = (workflow_dir / "release.yml").read_text()
@@ -83,10 +85,30 @@ class RecipeTest(unittest.TestCase):
                 ecosystems = {update["package-ecosystem"] for update in dependabot["updates"]}
                 self.assertTrue({"uv", "docker", "github-actions"}.issubset(ecosystems))
                 self.assertEqual("docker-compose" in ecosystems, database == "postgresql")
-                frontend = recipe.name == "fastapi-vue"
                 self.assertEqual("npm" in ecosystems, frontend)
                 self.assertEqual("frontend" in ci["jobs"], frontend)
+                python_updates = next(
+                    update
+                    for update in dependabot["updates"]
+                    if update["package-ecosystem"] == "uv"
+                )
+                self.assertEqual(python_updates["directory"], "/backend" if frontend else "/")
                 if frontend:
+                    self.assertFalse((project / "pyproject.toml").exists())
+                    self.assertFalse((project / "src").exists())
+                    self.assertFalse((project / "tests").exists())
+                    self.assertTrue((python_project / "README.md").is_file())
+                    self.assertTrue((python_project / ".python-version").is_file())
+                    for job in ("python", "docker"):
+                        self.assertEqual(
+                            ci["jobs"][job]["defaults"]["run"]["working-directory"], "backend"
+                        )
+                    version_check = next(
+                        step
+                        for step in release["jobs"]["image"]["steps"]
+                        if step.get("name") == "Check release version"
+                    )
+                    self.assertEqual(version_check["working-directory"], "backend")
                     image_matrix = release["jobs"]["image"]["strategy"]["matrix"]["include"]
                     self.assertEqual(
                         {image["dockerfile"] for image in image_matrix},
@@ -107,12 +129,12 @@ class RecipeTest(unittest.TestCase):
                     for source in (backend / "src").rglob("*.py"):
                         self.assertEqual(
                             source.read_bytes(),
-                            (project / source.relative_to(backend)).read_bytes(),
+                            (python_project / source.relative_to(backend)).read_bytes(),
                         )
                     self.check_frontend(project)
-                dependencies = tomllib.loads((project / "pyproject.toml").read_text())["project"][
-                    "dependencies"
-                ]
+                dependencies = tomllib.loads((python_project / "pyproject.toml").read_text())[
+                    "project"
+                ]["dependencies"]
                 self.assertEqual(
                     any("[asyncpg]" in dependency for dependency in dependencies),
                     database == "postgresql",
@@ -120,7 +142,7 @@ class RecipeTest(unittest.TestCase):
                 compose = load((project / "compose.yml").read_text(), Loader=BaseLoader)
                 self.assertEqual("db" in compose["services"], database == "postgresql")
                 self.assertEqual("frontend" in compose["services"], frontend)
-                self.run_command(project, "sync")
+                self.run_command(python_project, "sync")
                 for command in (
                     ("ruff", "format", "--check", "."),
                     ("ruff", "check", "."),
@@ -133,15 +155,15 @@ class RecipeTest(unittest.TestCase):
                     ("lint-imports", "--no-cache"),
                     ("python", "-m", "unittest", "discover", "-s", "tests", "-v"),
                 ):
-                    self.run_command(project, "run", *command)
-                self.assertTrue((project / "db.sqlite3").is_file())
+                    self.run_command(python_project, "run", *command)
+                self.assertTrue((python_project / "db.sqlite3").is_file())
                 self.assertTrue(
-                    list((project / "src" / module / "db" / "migrations").glob("0*.py"))
+                    list((python_project / "src" / module / "db" / "migrations").glob("0*.py"))
                 )
 
                 # A file-backed round trip verifies the migrated schema, not generate_schemas.
                 self.run_command(
-                    project,
+                    python_project,
                     "run",
                     "python",
                     "-c",
@@ -167,12 +189,12 @@ class RecipeTest(unittest.TestCase):
                     ("services", f"{module}.main"),
                 ):
                     with self.subTest(layer=layer, dependency=dependency):
-                        violation = project / "src" / module / layer / "violation.py"
+                        violation = python_project / "src" / module / layer / "violation.py"
                         violation.write_text(f"import {dependency}\n", encoding="utf-8")
                         try:
                             result = subprocess.run(
                                 ["uv", "run", "lint-imports", "--no-cache"],
-                                cwd=project,
+                                cwd=python_project,
                                 capture_output=True,
                                 text=True,
                                 timeout=60,

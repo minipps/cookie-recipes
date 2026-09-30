@@ -1,7 +1,7 @@
 version: 2
 updates:
   - package-ecosystem: uv
-    directory: "/"
+    directory: "{{ '/backend' if cookiecutter._frontend else '/' }}"
     schedule:
       interval: weekly
     cooldown:

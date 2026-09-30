@@ -32,7 +32,8 @@ jobs:
           version: "0.12.21"
           python-version: "3.13"
       - name: Check release version
-        env:
+{% endraw %}{% if cookiecutter._frontend %}        working-directory: backend
+{% endif %}{% raw %}        env:
           RELEASE_TAG: ${{ github.ref_name }}
         run: |
           uv run --no-project python - <<'PY'

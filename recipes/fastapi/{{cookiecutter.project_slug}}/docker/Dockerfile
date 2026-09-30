@@ -1,11 +1,11 @@
-FROM python:3.13-slim AS builder
+{% set backend_prefix = 'backend/' if cookiecutter._frontend else '' %}FROM python:3.13-slim AS builder
 COPY --from=ghcr.io/astral-sh/uv:0.12.21 /uv /usr/local/bin/uv
 WORKDIR /app
 ENV UV_PROJECT_ENVIRONMENT=/opt/venv UV_LINK_MODE=copy UV_PYTHON_DOWNLOADS=never
 
-COPY pyproject.toml uv.lock README.md ./
+COPY {{ backend_prefix }}pyproject.toml {{ backend_prefix }}uv.lock {{ backend_prefix }}README.md ./
 RUN --mount=type=cache,target=/root/.cache/uv uv sync --locked --no-dev --no-install-project
-COPY src/ ./src/
+COPY {{ backend_prefix }}src/ ./src/
 RUN --mount=type=cache,target=/root/.cache/uv uv sync --locked --no-dev --no-editable
 
 FROM python:3.13-slim AS runtime

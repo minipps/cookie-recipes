@@ -32,8 +32,13 @@ Names default from the project name; the hook rejects invalid slugs and Python m
 uvx cookiecutter . --directory recipes/fastapi-vue
 ```
 
-This recipe reuses the FastAPI template and its SQLite/PostgreSQL choice, and adds a
-TypeScript frontend in `frontend/`: Vite 8, Vue 3.6 RC, Vue Router 5, Vue I18n 12 alpha,
+This recipe reuses the FastAPI template and its SQLite/PostgreSQL choice. Generated projects
+keep the Python package, lockfile, source, and tests in `backend/`, the Vue application in
+`frontend/`, and both images' container configuration in `docker/`. Compose and GitHub
+configuration live at the project root. Run uv commands from `backend/` and npm commands
+from `frontend/`.
+
+The TypeScript frontend includes Vite 8, Vue 3.6 RC, Vue Router 5, Vue I18n 12 alpha,
 Pinia, Oxlint with e18e rules, Oxfmt, Knip, vue-tsc, and Vitest.
 TypeScript stays on version 6. `frontend/README.md` documents the upgrades to stable Vue,
 stable Vue I18n, and TypeScript 7 once Vue language tools support it.

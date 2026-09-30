@@ -1,7 +1,7 @@
 # Vue frontend
 
 Use Node 26.10.0 or newer. {% if cookiecutter._backend %}Start the FastAPI backend and apply migrations using the root
-README, then run:{% else %}Run:{% endif %}
+README. In another terminal, run these commands from the project root:{% else %}Run:{% endif %}
 
 ```sh
 cd frontend
@@ -53,7 +53,7 @@ to the API container.{% endif %} No Node process or development dependencies shi
 
 {% if cookiecutter._backend %}The release workflow publishes the backend as `ghcr.io/<owner>/<repository>` and the frontend
 as `ghcr.io/<owner>/<repository>-frontend`, after both CI jobs and Docker checks pass.
-Both use the version in the root `pyproject.toml`.{% else %}The release workflow publishes the frontend as `ghcr.io/<owner>/<repository>` after CI passes.
+Both use the version in `backend/pyproject.toml`.{% else %}The release workflow publishes the frontend as `ghcr.io/<owner>/<repository>` after CI passes.
 The release tag must match the version in `frontend/package.json`.{% endif %} Dependabot groups frontend runtime and
 development dependencies separately and applies a seven-day cooldown.
 

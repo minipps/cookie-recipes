@@ -1,8 +1,19 @@
-# {{ cookiecutter.project_name }}
+{% set backend_prefix = 'backend/' if cookiecutter._frontend else '' %}# {{ cookiecutter.project_name }}
 
 {{ cookiecutter.description }}
 
-{% if cookiecutter._frontend %}The Vue application lives in `frontend/`. See [frontend/README.md](frontend/README.md)
+{% if cookiecutter._frontend %}The project keeps its application code and container configuration in separate directories:
+
+```text
+{{ cookiecutter.project_slug }}/
+  frontend/
+  backend/      # pyproject.toml, uv.lock, src/, tests/
+  docker/       # both Dockerfiles, entrypoint, Nginx configuration
+```
+
+Run Python commands from `backend/`, npm commands from `frontend/`, and Docker Compose
+from the project root. GitHub workflows, Dependabot, and `compose.yml` live at the root.
+See [frontend/README.md](frontend/README.md)
 for frontend setup, quality checks, codemods, and the release upgrade TODOs.
 Run `npm ci --prefix frontend` before building the full Docker stack.
 Compose serves the application at http://127.0.0.1:8080 (`FRONTEND_PORT` overrides the port),
@@ -14,8 +25,8 @@ with API requests proxied to FastAPI. Vite provides the same proxy during local 
 ```sh
 {% if cookiecutter.database == 'postgresql' %}export POSTGRES_PASSWORD="$(openssl rand -hex 32)"
 docker compose up --detach --wait db
-{% endif %}
-uv sync
+{% endif %}{% if cookiecutter._frontend %}cd backend
+{% endif %}uv sync
 uv run tortoise init
 uv run tortoise makemigrations --name initial
 uv run tortoise migrate
@@ -41,7 +52,8 @@ for both the API and migration commands. Environment variables are read directly
 are not loaded automatically.
 {% endif %}
 
-Commit `uv.lock` after `uv sync` and commit generated migrations. After editing models:
+Commit `{{ backend_prefix }}uv.lock` after `uv sync` and commit generated migrations. After editing models
+(from the Python project directory):
 
 ```sh
 uv run tortoise makemigrations --name describe_change
@@ -56,7 +68,8 @@ to exercise another disposable test database; the smoke test creates tables and 
 
 ## Docker with {{ 'PostgreSQL' if cookiecutter.database == 'postgresql' else 'SQLite' }}
 
-Run the initial setup above to create `uv.lock` and migrations, then:
+Run the initial setup above to create `{{ backend_prefix }}uv.lock` and migrations, then
+run these commands from the project root:
 
 ```sh
 docker compose up --build --detach --wait
@@ -88,6 +101,9 @@ docker run --rm --publish 127.0.0.1:8000:8000 --mount type=volume,src={{ cookiec
 
 ## Quality checks
 
+{% if cookiecutter._frontend %}Run these commands from `backend/`:
+
+{% endif %}
 ```sh
 uv run ruff format --check .
 uv run ruff check .
@@ -109,7 +125,7 @@ Use `uv run ruff format .` and `uv run ruff check --fix .` to apply formatting a
 
 ## GitHub CI and releases
 
-Commit `uv.lock` and the initial migrations before pushing the generated project to GitHub.
+Commit `{{ backend_prefix }}uv.lock` and the initial migrations before pushing the generated project to GitHub.
 `.github/workflows/ci.yml` runs formatting, Ruff, ty, import-linter, API tests, and the Docker
 persistence test on pushes to `main` and pull requests. Installs use `uv sync --locked`, so a
 missing or stale lockfile fails CI.
@@ -123,7 +139,8 @@ there when adding development tools. Update pull requests run the same CI checks
 
 The release workflow runs the same gates, then publishes the image to
 `ghcr.io/<owner>/<repository>` using GitHub's built-in token. No registry secret is needed.
-To release, update `project.version` in `pyproject.toml`, run `uv lock`, commit and push the
+To release, update `project.version` in `{{ backend_prefix }}pyproject.toml`, run `uv lock` from
+the Python project directory, commit and push the
 changes, then push a matching stable version tag:
 
 ```sh
@@ -138,13 +155,13 @@ desired version with the same persistent database volume.
 ## Architecture
 
 ```text
-src/{{ cookiecutter.module_name }}/
+{{ backend_prefix }}src/{{ cookiecutter.module_name }}/
   main.py         # composition root: FastAPI, routers, ORM lifespan
   api/            # HTTP routes; calls services, never imports storage directly
   services/       # application operations; calls storage, returns domain schemas
   db/             # Tortoise models, configuration, generated migrations
   domain/         # shared Pydantic schemas; no application or I/O imports
-tests/            # HTTPX2 ASGI smoke test and optional Docker persistence test
+{{ backend_prefix }}tests/            # HTTPX2 ASGI smoke test and optional Docker persistence test
 ```
 
 Import-linter allows API → services → DB while rejecting direct API → DB imports and

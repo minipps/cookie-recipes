@@ -10,7 +10,7 @@ import httpx2
 @unittest.skipUnless(os.environ.get("RUN_DOCKER_TESTS") == "1", "Set RUN_DOCKER_TESTS=1")
 class DockerSmokeTest(unittest.TestCase):
     def test_database_survives_container_replacement(self) -> None:
-        project = Path(__file__).resolve().parents[1]
+        project = Path(__file__).resolve().parents[{{ 2 if cookiecutter._frontend else 1 }}]
         command = ["docker", "compose", "--project-name", f"smoke-{uuid4().hex[:12]}"]
         environment = {
             **os.environ,

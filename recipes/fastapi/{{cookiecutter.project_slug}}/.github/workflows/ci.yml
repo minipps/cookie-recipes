@@ -31,14 +31,18 @@ jobs:
       DATABASE_URL: postgres://app:test-password@localhost:5432/test
       TEST_DATABASE_URL: postgres://app:test-password@localhost:5432/test
 {% endif %}{% raw %}
-    steps:
+{% endraw %}{% if cookiecutter._frontend %}    defaults:
+      run:
+        working-directory: backend
+{% endif %}{% raw %}    steps:
       - uses: actions/checkout@v7
       - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
         with:
           version: "0.12.21"
           python-version: "3.13"
           enable-cache: true
-      - run: uv sync --locked
+{% endraw %}{% if cookiecutter._frontend %}          cache-dependency-glob: backend/uv.lock
+{% endif %}{% raw %}      - run: uv sync --locked
       - name: Format
         run: uv run --locked ruff format --check .
       - name: Lint
@@ -53,14 +57,18 @@ jobs:
   docker:
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    steps:
+{% endraw %}{% if cookiecutter._frontend %}    defaults:
+      run:
+        working-directory: backend
+{% endif %}{% raw %}    steps:
       - uses: actions/checkout@v7
       - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
         with:
           version: "0.12.21"
           python-version: "3.13"
           enable-cache: true
-      - run: uv sync --locked
+{% endraw %}{% if cookiecutter._frontend %}          cache-dependency-glob: backend/uv.lock
+{% endif %}{% raw %}      - run: uv sync --locked
       - name: Build image and verify database persistence
         env:
           RUN_DOCKER_TESTS: "1"

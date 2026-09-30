@@ -10,5 +10,8 @@ shutil.copytree(
     template / "{{cookiecutter.project_slug}}",
     dirs_exist_ok=True,
 )
+project = template / "{{cookiecutter.project_slug}}"
+for name in ("pyproject.toml", ".python-version", "src", "tests"):
+    shutil.move(project / name, project / "backend" / name)
 shutil.copy2(backend / "hooks" / "pre_gen_project.py", template / "hooks" / "pre_gen_project.py")
 shutil.rmtree(backend)
