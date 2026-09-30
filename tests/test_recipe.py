@@ -3,6 +3,7 @@ import subprocess
 import tempfile
 import tomllib
 import unittest
+from itertools import product
 from pathlib import Path
 
 from cookiecutter.exceptions import FailedHookException
@@ -44,14 +45,18 @@ class RecipeTest(unittest.TestCase):
                 "cookie_backend",
             ),
         )
-        for context, module in contexts:
+        for recipe, (context, module) in product(
+            (RECIPE, RECIPE.with_name("fastapi-vue")), contexts
+        ):
+            if recipe.name == "fastapi-vue" and not context:
+                module = "my_app"
             with (
-                self.subTest(module=module),
+                self.subTest(recipe=recipe.name, module=module),
                 tempfile.TemporaryDirectory() as directory,
             ):
                 project = Path(
                     cookiecutter(
-                        str(RECIPE),
+                        str(recipe),
                         no_input=True,
                         output_dir=directory,
                         extra_context=context,
@@ -74,6 +79,33 @@ class RecipeTest(unittest.TestCase):
                 ecosystems = {update["package-ecosystem"] for update in dependabot["updates"]}
                 self.assertTrue({"uv", "docker", "github-actions"}.issubset(ecosystems))
                 self.assertEqual("docker-compose" in ecosystems, database == "postgresql")
+                frontend = recipe.name == "fastapi-vue"
+                self.assertEqual("npm" in ecosystems, frontend)
+                self.assertEqual("frontend" in ci["jobs"], frontend)
+                if frontend:
+                    image_matrix = release["jobs"]["image"]["strategy"]["matrix"]["include"]
+                    self.assertEqual(
+                        {image["dockerfile"] for image in image_matrix},
+                        {"docker/Dockerfile", "docker/frontend.Dockerfile"},
+                    )
+                    # Both recipes render the same backend, rather than maintaining copies.
+                    backend = Path(
+                        cookiecutter(
+                            str(RECIPE),
+                            no_input=True,
+                            output_dir=str(Path(directory) / "backend"),
+                            extra_context={**context, "project_name": "My App"}
+                            if not context
+                            else context,
+                            default_config={"replay_dir": directory},
+                        )
+                    )
+                    for source in (backend / "src").rglob("*.py"):
+                        self.assertEqual(
+                            source.read_bytes(),
+                            (project / source.relative_to(backend)).read_bytes(),
+                        )
+                    self.check_frontend(project)
                 dependencies = tomllib.loads((project / "pyproject.toml").read_text())["project"][
                     "dependencies"
                 ]
@@ -83,6 +115,7 @@ class RecipeTest(unittest.TestCase):
                 )
                 compose = load((project / "compose.yml").read_text(), Loader=BaseLoader)
                 self.assertEqual("db" in compose["services"], database == "postgresql")
+                self.assertEqual("frontend" in compose["services"], frontend)
                 self.run_command(project, "sync")
                 for command in (
                     ("ruff", "format", "--check", "."),
@@ -147,26 +180,63 @@ class RecipeTest(unittest.TestCase):
                             violation.unlink()
 
     def test_invalid_names(self) -> None:
-        for context in (
-            {"project_slug": "../escape"},
-            {"project_slug": "bad name"},
-            {"module_name": "bad-name"},
-            {"module_name": "class"},
-            {"module_name": "123module"},
-            {"description": "Two\nlines"},
+        for recipe, context in product(
+            (RECIPE, RECIPE.with_name("fastapi-vue")),
+            (
+                {"project_slug": "../escape"},
+                {"project_slug": "bad name"},
+                {"module_name": "bad-name"},
+                {"module_name": "class"},
+                {"module_name": "123module"},
+                {"description": "Two\nlines"},
+            ),
         ):
             with (
-                self.subTest(context=context),
+                self.subTest(recipe=recipe.name, context=context),
                 tempfile.TemporaryDirectory() as directory,
                 self.assertRaises(FailedHookException),
             ):
                 cookiecutter(
-                    str(RECIPE),
+                    str(recipe),
                     no_input=True,
                     output_dir=directory,
                     extra_context=context,
                     default_config={"replay_dir": directory},
                 )
+
+    def check_frontend(self, project: Path) -> None:
+        def npm(*args: str) -> subprocess.CompletedProcess[str]:
+            return subprocess.run(
+                ["npm", *args],
+                cwd=project / "frontend",
+                capture_output=True,
+                text=True,
+                timeout=600,
+                check=False,
+            )
+
+        for args in (
+            ("ci", "--no-audit", "--no-fund"),
+            *(
+                ("run", command)
+                for command in ("format:check", "lint", "type-check", "test", "knip", "build")
+            ),
+            ("run", "codemod", "--", "--help"),
+            ("run", "codemod", "--", "--all", "--dry-run", "--include", "src/**/*.ts"),
+        ):
+            result = npm(*args)
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        violation = project / "frontend" / "src" / "violation.ts"
+        violation.write_text("export const includes = ['a'].indexOf('a') !== -1;\n")
+        try:
+            result = npm("run", "lint")
+            self.assertNotEqual(result.returncode, 0, result.stdout)
+            self.assertIn("prefer-includes", result.stdout + result.stderr)
+            result = npm("run", "knip")
+            self.assertNotEqual(result.returncode, 0, result.stdout)
+            self.assertIn("violation.ts", result.stdout + result.stderr)
+        finally:
+            violation.unlink()
 
 
 if __name__ == "__main__":

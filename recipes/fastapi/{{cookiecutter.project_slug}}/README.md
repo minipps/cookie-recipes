@@ -2,6 +2,13 @@
 
 {{ cookiecutter.description }}
 
+{% if cookiecutter._frontend %}The Vue application lives in `frontend/`. See [frontend/README.md](frontend/README.md)
+for frontend setup, quality checks, codemods, and the release upgrade TODOs.
+Run `npm ci --prefix frontend` before building the full Docker stack.
+Compose serves the application at http://127.0.0.1:8080 (`FRONTEND_PORT` overrides the port),
+with API requests proxied to FastAPI. Vite provides the same proxy during local development.
+{% endif %}
+
 ## Run
 
 ```sh

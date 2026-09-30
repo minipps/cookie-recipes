@@ -7,3 +7,8 @@ __pycache__/
 data/
 *.sqlite3
 *.sqlite3-*
+{% if cookiecutter._frontend %}node_modules/
+dist/
+coverage/
+*.tsbuildinfo
+{% endif %}

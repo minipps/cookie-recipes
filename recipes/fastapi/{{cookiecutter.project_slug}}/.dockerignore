@@ -13,3 +13,8 @@ data/
 *.db-*
 .env
 .env.*
+{% if cookiecutter._frontend %}**/node_modules/
+**/dist/
+**/coverage/
+**/*.tsbuildinfo
+{% endif %}

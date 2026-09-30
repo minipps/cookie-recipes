@@ -25,20 +25,45 @@ Recipe inputs are `project_name`, `project_slug`, `module_name`, `description`, 
 `database` (`sqlite` or `postgresql`, with SQLite selected by default).
 Names default from the project name; the hook rejects invalid slugs and Python module names.
 
+## FastAPI + Vue
+
+```sh
+uvx cookiecutter . --directory recipes/fastapi-vue
+```
+
+This recipe reuses the FastAPI template and its SQLite/PostgreSQL choice, and adds a
+TypeScript frontend in `frontend/`: Vite 8, Vue 3.6 RC, Vue Router 5, Vue I18n 12 alpha,
+Pinia, Oxlint with e18e rules, Oxfmt, Knip, vue-tsc, and Vitest.
+TypeScript stays on version 6. `frontend/README.md` documents the upgrades to stable Vue,
+stable Vue I18n, and TypeScript 7 once Vue language tools support it.
+Vue I18n 12 has no published RC as of 2026-09-30, so the latest version 12 alpha is used.
+
+The e18e CLI supplies dependency replacement codemods. Frontend dependencies have a
+committed npm lockfile and separate Dependabot runtime/tooling groups. CI runs frontend
+formatting, linting, types, tests, dead-code checks, and a production build alongside the
+backend gates. Compose adds an Nginx container serving the Vue build on port 8080 and
+proxying API requests. Releases publish both backend and frontend images to GHCR.
+
+The `backend` symlink points to the existing FastAPI recipe. Cookiecutter's pre-prompt
+hook merges it into a temporary template copy before rendering the Vue overlay; backend
+code and checks stay maintained in one place. Use Cookiecutter 2.7.1 or newer with hooks enabled.
+
 ## Check the recipe
 
 ```sh
 uv run --no-project --with cookiecutter python -m unittest discover -s tests -v
 ```
 
-This renders the default SQLite recipe and a renamed PostgreSQL project in temporary directories,
-installs their dependencies with uv, runs formatting, linting, typing, and API checks, and verifies that import
-contracts reject forbidden dependencies.
+This renders both recipes with SQLite and PostgreSQL in temporary directories, installs
+their dependencies, runs the backend and frontend gates, and verifies that import contracts,
+e18e rules, and Knip reject violations. It also checks that both recipes render the same backend.
 
-Set `RUN_DOCKER_TESTS=1` on the same command to also build both generated projects' images
-and check persistence for both database backends across container replacement.
-This requires Docker with Compose. The other recipe gates use SQLite to run without a server.
+Set `RUN_DOCKER_TESTS=1` on the same command to build all generated images and verify
+database persistence across container replacement, SPA routing, and API proxying.
+Tests require uv and Node 26.10.0 or newer; Docker checks also require Docker with Compose.
+The other backend gates use SQLite to run without a server.
 
-This repository's GitHub CI runs those checks for both database choices.
-The repository's own Dependabot configuration groups GitHub Actions updates; Python and image
-updates are configured in the generated projects, which have valid manifests and lockfiles.
+This repository's GitHub CI runs those checks for both recipes and database choices.
+The repository's own Dependabot configuration tracks GitHub Actions and the Vue template's
+valid npm manifest, lockfile, and Dockerfile. Generated projects also track Python dependencies
+and all container images.

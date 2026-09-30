@@ -29,6 +29,22 @@ updates:
       database-images:
         patterns: ["*"]
 
+{% endif %}{% if cookiecutter._frontend %}  - package-ecosystem: npm
+    directory: "/frontend"
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+    groups:
+      frontend-runtime:
+        dependency-type: production
+      frontend-development:
+        dependency-type: development
+    ignore:
+      # TODO: allow TypeScript 7 once vue-tsc supports it.
+      - dependency-name: typescript
+        versions: [">=7"]
+
 {% endif %}  - package-ecosystem: github-actions
     directory: "/"
     schedule:

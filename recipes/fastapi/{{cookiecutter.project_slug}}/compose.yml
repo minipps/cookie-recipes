@@ -21,7 +21,18 @@ services:
 {% endif %}
     restart: unless-stopped
 
-{% if cookiecutter.database == 'postgresql' %}  db:
+{% if cookiecutter._frontend %}  frontend:
+    build:
+      context: .
+      dockerfile: docker/frontend.Dockerfile
+    ports:
+      - "127.0.0.1:${FRONTEND_PORT:-8080}:8080"
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped
+
+{% endif %}{% if cookiecutter.database == 'postgresql' %}  db:
     image: postgres:18-alpine
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-app}

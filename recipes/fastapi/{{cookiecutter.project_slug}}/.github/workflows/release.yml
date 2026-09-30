@@ -15,7 +15,14 @@ jobs:
     needs: gates
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    permissions:
+{% endraw %}{% if cookiecutter._frontend %}    strategy:
+      matrix:
+        include:
+          - dockerfile: docker/Dockerfile
+            suffix: ""
+          - dockerfile: docker/frontend.Dockerfile
+            suffix: "-frontend"
+{% endif %}{% raw %}    permissions:
       contents: read
       packages: write
     steps:
@@ -46,17 +53,24 @@ jobs:
       - uses: docker/metadata-action@v6
         id: meta
         with:
-          images: ghcr.io/${{ github.repository }}
+{% endraw %}{% if cookiecutter._frontend %}{% raw %}          images: ghcr.io/${{ github.repository }}${{ matrix.suffix }}
+{% endraw %}{% else %}{% raw %}          images: ghcr.io/${{ github.repository }}
+{% endraw %}{% endif %}{% raw %}
           tags: |
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
       - uses: docker/build-push-action@v7
         with:
           context: .
-          file: docker/Dockerfile
+{% endraw %}{% if cookiecutter._frontend %}{% raw %}          file: ${{ matrix.dockerfile }}
+{% endraw %}{% else %}          file: docker/Dockerfile
+{% endif %}{% raw %}
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
+{% endraw %}{% if cookiecutter._frontend %}{% raw %}          cache-from: type=gha,scope=api${{ matrix.suffix }}
+          cache-to: type=gha,mode=max,scope=api${{ matrix.suffix }}
+{% endraw %}{% else %}          cache-from: type=gha
           cache-to: type=gha,mode=max
+{% endif %}{% raw %}
 {% endraw %}

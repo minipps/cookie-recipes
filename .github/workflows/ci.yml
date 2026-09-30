@@ -18,6 +18,11 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: "recipes/fastapi-vue/{{cookiecutter.project_slug}}/frontend/.node-version"
+          cache: npm
+          cache-dependency-path: "recipes/fastapi-vue/{{cookiecutter.project_slug}}/frontend/package-lock.json"
       - uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
         with:
           version: "0.12.19"
@@ -28,7 +33,7 @@ jobs:
         run: |
           uvx ruff check --isolated --target-version py313 tests
           uvx ruff format --isolated --check --line-length 100 tests
-      - name: SQLite and PostgreSQL recipe gates and Docker persistence
+      - name: FastAPI and Vue recipe gates and Docker persistence for both databases
         env:
           RUN_DOCKER_TESTS: "1"
         run: uv run --no-project --with cookiecutter python -m unittest discover -s tests -v

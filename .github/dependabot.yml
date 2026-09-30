@@ -7,3 +7,27 @@ updates:
     groups:
       github-actions:
         patterns: ["*"]
+
+  - package-ecosystem: npm
+    directory: "/recipes/fastapi-vue/{{cookiecutter.project_slug}}/frontend"
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+    groups:
+      frontend-runtime:
+        dependency-type: production
+      frontend-development:
+        dependency-type: development
+    ignore:
+      # TODO: allow TypeScript 7 once vue-tsc supports it.
+      - dependency-name: typescript
+        versions: [">=7"]
+
+  - package-ecosystem: docker
+    directory: "/recipes/fastapi-vue/{{cookiecutter.project_slug}}/docker"
+    schedule:
+      interval: weekly
+    groups:
+      frontend-images:
+        patterns: ["*"]

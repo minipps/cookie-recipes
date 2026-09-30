@@ -1,0 +1,47 @@
+{
+  "name": "frontend",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1",
+    "build": "vue-tsc --noEmit && vite build",
+    "preview": "vite preview --host 127.0.0.1",
+    "format": "oxfmt .",
+    "format:check": "oxfmt --check .",
+    "lint": "oxlint --deny-warnings .",
+    "type-check": "vue-tsc --noEmit",
+    "test": "vitest run",
+    "knip": "knip",
+    "knip:fix": "knip --fix",
+    "e18e": "e18e-cli analyze",
+    "codemod": "e18e-cli migrate"
+  },
+  "dependencies": {
+    "pinia": "^4.0.3",
+    "vue": "3.6.0-rc.9",
+    "vue-i18n": "12.0.0-alpha.4",
+    "vue-router": "^5.3.1"
+  },
+  "devDependencies": {
+    "@e18e/cli": "^0.7.0",
+    "@e18e/eslint-plugin": "^0.8.1",
+    "@types/node": "^26.6.3",
+    "@vitejs/plugin-vue": "^6.0.9",
+    "jsdom": "^30.1.1",
+    "knip": "^6.38.0",
+    "oxfmt": "^0.71.0",
+    "oxlint": "^1.86.0",
+    "typescript": "~6.0.3",
+    "vite": "^8.3.1",
+    "vitest": "^5.0.2",
+    "vue-tsc": "^3.3.11"
+  },
+  "overrides": {
+    "@vue/compiler-sfc": "$vue",
+    "vue": "$vue"
+  },
+  "engines": {
+    "node": ">=26.10.0"
+  }
+}
