@@ -68,6 +68,12 @@ class RecipeTest(unittest.TestCase):
                 self.assertIn("{{version}}", release_text)
                 self.assertNotIn("{%", release_text)
                 database = context.get("database", "sqlite")
+                dependabot = load(
+                    (project / ".github" / "dependabot.yml").read_text(), Loader=BaseLoader
+                )
+                ecosystems = {update["package-ecosystem"] for update in dependabot["updates"]}
+                self.assertTrue({"uv", "docker", "github-actions"}.issubset(ecosystems))
+                self.assertEqual("docker-compose" in ecosystems, database == "postgresql")
                 dependencies = tomllib.loads((project / "pyproject.toml").read_text())["project"][
                     "dependencies"
                 ]

@@ -13,6 +13,9 @@ It defaults to Python 3.13 and SQLite, with an example item API, smoke tests, an
 Choose `postgresql` for the `database` prompt to include the asyncpg driver, PostgreSQL
 configuration, a PostgreSQL Compose service with persistent storage, and PostgreSQL CI tests.
 Generated projects include GitHub CI and a tag-driven release workflow that publishes to GHCR.
+Dependabot checks weekly for separate Python runtime, Python tooling, Docker image, and Actions
+update groups. PostgreSQL projects also track the database image in Compose. Python version
+updates have a seven-day cooldown.
 
 Imports follow `api → services → db`, with shared Pydantic schemas in `domain`.
 Import-linter prevents direct API/database imports, reverse dependencies, and framework
@@ -37,3 +40,5 @@ and check persistence for both database backends across container replacement.
 This requires Docker with Compose. The other recipe gates use SQLite to run without a server.
 
 This repository's GitHub CI runs those checks for both database choices.
+The repository's own Dependabot configuration groups GitHub Actions updates; Python and image
+updates are configured in the generated projects, which have valid manifests and lockfiles.

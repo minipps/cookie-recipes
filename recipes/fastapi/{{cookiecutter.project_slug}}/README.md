@@ -107,6 +107,13 @@ Commit `uv.lock` and the initial migrations before pushing the generated project
 persistence test on pushes to `main` and pull requests. Installs use `uv sync --locked`, so a
 missing or stale lockfile fails CI.
 
+`.github/dependabot.yml` checks weekly for dependency updates in separate groups:
+Python development tools, Python runtime packages, Docker base images, and GitHub Actions.
+{% if cookiecutter.database == 'postgresql' %}The PostgreSQL Compose image has its own database-images group.
+{% endif %}Python version updates have a seven-day cooldown; security updates are not delayed by it.
+The Python tooling group matches Ruff, ty, import-linter, and uv_build by name; add patterns
+there when adding development tools. Update pull requests run the same CI checks.
+
 The release workflow runs the same gates, then publishes the image to
 `ghcr.io/<owner>/<repository>` using GitHub's built-in token. No registry secret is needed.
 To release, update `project.version` in `pyproject.toml`, run `uv lock`, commit and push the

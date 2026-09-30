@@ -1,0 +1,38 @@
+version: 2
+updates:
+  - package-ecosystem: uv
+    directory: "/"
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+    groups:
+      # First match wins; the remaining Python packages belong to the runtime group.
+      python-development:
+        patterns: ["ruff", "ty", "import-linter", "uv-build", "uv_build"]
+      python-runtime:
+        patterns: ["*"]
+
+  - package-ecosystem: docker
+    directory: "/docker"
+    schedule:
+      interval: weekly
+    groups:
+      docker-images:
+        patterns: ["*"]
+
+{% if cookiecutter.database == 'postgresql' %}  - package-ecosystem: docker-compose
+    directory: "/"
+    schedule:
+      interval: weekly
+    groups:
+      database-images:
+        patterns: ["*"]
+
+{% endif %}  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+    groups:
+      github-actions:
+        patterns: ["*"]
