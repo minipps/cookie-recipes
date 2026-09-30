@@ -1,6 +1,7 @@
 # Cookie recipes
 
-Opinionated Cookiecutter recipes for Python projects, managed with [uv](https://docs.astral.sh/uv/).
+Opinionated Cookiecutter recipes for Python and Vue projects.
+Python projects use [uv](https://docs.astral.sh/uv/); Vue projects use npm.
 
 ## FastAPI
 
@@ -48,13 +49,29 @@ The `backend` symlink points to the existing FastAPI recipe. Cookiecutter's pre-
 hook merges it into a temporary template copy before rendering the Vue overlay; backend
 code and checks stay maintained in one place. Use Cookiecutter 2.7.1 or newer with hooks enabled.
 
+## Vue
+
+```sh
+uvx cookiecutter . --directory recipes/vue
+```
+
+The standalone recipe includes the same frontend toolchain, versions, lockfile, codemods,
+and upgrade TODOs as `fastapi-vue`. Its example stores items in memory with Pinia and
+uses English/Spanish messages through Vue I18n. Inputs are `project_name`, `project_slug`,
+and `description`. It includes a non-root Nginx Docker image, Compose, frontend CI checks,
+grouped Dependabot, and a release workflow publishing to GHCR using `frontend/package.json`.
+
+The shared frontend and Docker files live in `recipes/vue`; `fastapi-vue` references them
+with symlinks. Cookiecutter's temporary template copy resolves the links before rendering.
+
 ## Check the recipe
 
 ```sh
 uv run --no-project --with cookiecutter python -m unittest discover -s tests -v
 ```
 
-This renders both recipes with SQLite and PostgreSQL in temporary directories, installs
+This renders both FastAPI recipes with SQLite and PostgreSQL, plus default and renamed
+standalone Vue projects, in temporary directories. It installs
 their dependencies, runs the backend and frontend gates, and verifies that import contracts,
 e18e rules, and Knip reject violations. It also checks that both recipes render the same backend.
 
@@ -63,7 +80,7 @@ database persistence across container replacement, SPA routing, and API proxying
 Tests require uv and Node 26.10.0 or newer; Docker checks also require Docker with Compose.
 The other backend gates use SQLite to run without a server.
 
-This repository's GitHub CI runs those checks for both recipes and database choices.
+This repository's GitHub CI runs those checks for all recipes and database choices.
 The repository's own Dependabot configuration tracks GitHub Actions and the Vue template's
 valid npm manifest, lockfile, and Dockerfile. Generated projects also track Python dependencies
 and all container images.

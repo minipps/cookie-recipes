@@ -1,15 +1,7 @@
 version: 2
 updates:
-  - package-ecosystem: github-actions
-    directory: "/"
-    schedule:
-      interval: weekly
-    groups:
-      github-actions:
-        patterns: ["*"]
-
   - package-ecosystem: npm
-    directory: "/recipes/vue/{{cookiecutter.project_slug}}/frontend"
+    directory: "/frontend"
     schedule:
       interval: weekly
     cooldown:
@@ -25,9 +17,17 @@ updates:
         versions: [">=7"]
 
   - package-ecosystem: docker
-    directory: "/recipes/vue/{{cookiecutter.project_slug}}/docker"
+    directory: "/docker"
     schedule:
       interval: weekly
     groups:
-      frontend-images:
+      docker-images:
+        patterns: ["*"]
+
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+    groups:
+      github-actions:
         patterns: ["*"]

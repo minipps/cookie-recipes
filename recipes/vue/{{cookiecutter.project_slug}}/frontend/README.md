@@ -1,7 +1,7 @@
 # Vue frontend
 
-Use Node 26.10.0 or newer. Start the FastAPI backend and apply migrations using the root
-README, then run:
+Use Node 26.10.0 or newer. {% if cookiecutter._backend %}Start the FastAPI backend and apply migrations using the root
+README, then run:{% else %}Run:{% endif %}
 
 ```sh
 cd frontend
@@ -9,10 +9,12 @@ npm ci
 npm run dev
 ```
 
-Open http://127.0.0.1:5173. Vite proxies `/api` and `/health` to FastAPI on port 8000.
+Open http://127.0.0.1:5173. {% if cookiecutter._backend %}Vite proxies `/api` and `/health` to FastAPI on port 8000.
 The example form uses Pinia to create an item in the backend, Vue Router for navigation,
 and Vue I18n for English and Spanish messages. Browser requests use native `fetch`.
-
+{% else %}The example form uses Pinia to store an item in memory, Vue Router for navigation,
+and Vue I18n for English and Spanish messages. Reloading resets the example state.
+{% endif %}
 ## Checks and cleanup
 
 ```sh
@@ -44,14 +46,15 @@ and run checks afterward. Oxlint also auto-fixes modern web syntax through the e
 
 ## Docker and releases
 
-From the project root, `docker compose up --build --detach --wait` builds both images.
+From the project root, `docker compose up --build --detach --wait` builds {% if cookiecutter._backend %}both images{% else %}the frontend image{% endif %}.
 Open http://127.0.0.1:8080 (`FRONTEND_PORT` changes the host port). Nginx runs without root,
-serves the production build, supports Vue Router history paths, and proxies `/api` and `/health`
-to the API container. No Node process or development dependencies ship in the frontend image.
+serves the production build, and supports Vue Router history paths.{% if cookiecutter._backend %} It proxies `/api` and `/health`
+to the API container.{% endif %} No Node process or development dependencies ship in the frontend image.
 
-The release workflow publishes the backend as `ghcr.io/<owner>/<repository>` and the frontend
+{% if cookiecutter._backend %}The release workflow publishes the backend as `ghcr.io/<owner>/<repository>` and the frontend
 as `ghcr.io/<owner>/<repository>-frontend`, after both CI jobs and Docker checks pass.
-Both use the version in the root `pyproject.toml`. Dependabot groups frontend runtime and
+Both use the version in the root `pyproject.toml`.{% else %}The release workflow publishes the frontend as `ghcr.io/<owner>/<repository>` after CI passes.
+The release tag must match the version in `frontend/package.json`.{% endif %} Dependabot groups frontend runtime and
 development dependencies separately and applies a seven-day cooldown.
 
 ## Upgrade TODOs

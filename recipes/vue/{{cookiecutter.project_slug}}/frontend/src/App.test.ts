@@ -6,10 +6,13 @@ import App from './App.vue';
 import { makeI18n } from './i18n';
 import { makeRouter } from './router';
 
-test('creates an API item, switches language, and reports a failed request', async () => {
+{% if cookiecutter._backend %}test('creates an API item, switches language, and reports a failed request', async () => {
   const fetchMock = vi.fn().mockResolvedValue(Response.json({ id: 1, name: 'Example' }));
   vi.stubGlobal('fetch', fetchMock);
-  const router = makeRouter(createMemoryHistory());
+{% else %}test('creates an in-memory item, switches language, and makes no network requests', async () => {
+  const fetchMock = vi.fn();
+  vi.stubGlobal('fetch', fetchMock);
+{% endif %}  const router = makeRouter(createMemoryHistory());
   await router.push('/');
   await router.isReady();
   const host = document.createElement('div');
@@ -25,19 +28,20 @@ test('creates an API item, switches language, and reports a failed request', asy
     await vi.waitFor(() =>
       expect(host.querySelector('[role="status"]')?.textContent).toBe('Saved item #1: Example'),
     );
-    expect(fetchMock).toHaveBeenCalledWith('/api/v1/items', {
+{% if cookiecutter._backend %}    expect(fetchMock).toHaveBeenCalledWith('/api/v1/items', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name: 'Example' }),
     });
 
-    const language = host.querySelector<HTMLSelectElement>('#language')!;
+{% else %}    expect(fetchMock).not.toHaveBeenCalled();
+{% endif %}    const language = host.querySelector<HTMLSelectElement>('#language')!;
     language.value = 'es';
     language.dispatchEvent(new Event('change'));
     await nextTick();
     expect(host.querySelector('h1')?.textContent).toBe('Elementos');
 
-    fetchMock.mockResolvedValue(new Response(null, { status: 500 }));
+{% if cookiecutter._backend %}    fetchMock.mockResolvedValue(new Response(null, { status: 500 }));
     host.querySelector('form')!.dispatchEvent(new Event('submit', { cancelable: true }));
     await vi.waitFor(() =>
       expect(host.querySelector('[role="alert"]')?.textContent).toBe(
@@ -45,7 +49,19 @@ test('creates an API item, switches language, and reports a failed request', asy
       ),
     );
     expect(host.querySelector('button')?.disabled).toBe(false);
-  } finally {
+{% else %}    expect(host.querySelector('[role="status"]')?.textContent).toBe(
+      'Elemento guardado #1: Example',
+    );
+    input.value = '  Updated  ';
+    input.dispatchEvent(new Event('input'));
+    await nextTick();
+    host.querySelector('form')!.dispatchEvent(new Event('submit', { cancelable: true }));
+    await nextTick();
+    expect(host.querySelector('[role="status"]')?.textContent).toBe(
+      'Elemento guardado #2: Updated',
+    );
+    expect(fetchMock).not.toHaveBeenCalled();
+{% endif %}  } finally {
     app.unmount();
     host.remove();
   }

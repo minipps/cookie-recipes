@@ -1,10 +1,14 @@
 import os
+import re
 import subprocess
 import tempfile
 import tomllib
 import unittest
 from itertools import product
 from pathlib import Path
+from urllib.error import HTTPError
+from urllib.request import ProxyHandler, build_opener
+from uuid import uuid4
 
 from cookiecutter.exceptions import FailedHookException
 from cookiecutter.main import cookiecutter
@@ -203,6 +207,109 @@ class RecipeTest(unittest.TestCase):
                     extra_context=context,
                     default_config={"replay_dir": directory},
                 )
+
+    def test_vue_projects(self) -> None:
+        recipe = RECIPE.with_name("vue")
+        for context in ({}, {"project_name": "Vue <Demo>", "project_slug": "vue-demo"}):
+            with self.subTest(context=context), tempfile.TemporaryDirectory() as directory:
+                project = Path(
+                    cookiecutter(
+                        str(recipe),
+                        no_input=True,
+                        output_dir=directory,
+                        extra_context=context,
+                        default_config={"replay_dir": directory},
+                    )
+                )
+                self.assertFalse((project / "pyproject.toml").exists())
+                self.assertFalse((project / "src").exists())
+                self.assertNotIn("proxy_pass", (project / "docker" / "nginx.conf").read_text())
+                self.assertNotIn("server:", (project / "frontend" / "vite.config.ts").read_text())
+                self.assertNotIn(
+                    "/api/", (project / "frontend" / "src" / "stores" / "items.ts").read_text()
+                )
+                compose = load((project / "compose.yml").read_text(), Loader=BaseLoader)
+                self.assertEqual(set(compose["services"]), {"frontend"})
+                ci = load(
+                    (project / ".github" / "workflows" / "ci.yml").read_text(), Loader=BaseLoader
+                )
+                self.assertEqual(set(ci["jobs"]), {"frontend", "docker"})
+                self.assertIn("workflow_call", ci["on"])
+                release = load(
+                    (project / ".github" / "workflows" / "release.yml").read_text(),
+                    Loader=BaseLoader,
+                )
+                self.assertEqual(release["jobs"]["image"]["needs"], "gates")
+                dependabot = load(
+                    (project / ".github" / "dependabot.yml").read_text(), Loader=BaseLoader
+                )
+                self.assertEqual(
+                    {update["package-ecosystem"] for update in dependabot["updates"]},
+                    {"npm", "docker", "github-actions"},
+                )
+                for file in ("package.json", "package-lock.json"):
+                    self.assertEqual(
+                        (project / "frontend" / file).read_bytes(),
+                        (recipe / "{{cookiecutter.project_slug}}" / "frontend" / file).read_bytes(),
+                    )
+                self.check_frontend(project)
+                if os.environ.get("RUN_DOCKER_TESTS") == "1":
+                    self.check_vue_docker(project)
+
+        for context in ({"project_slug": "../escape"}, {"project_slug": "bad name"}):
+            with (
+                self.subTest(context=context),
+                tempfile.TemporaryDirectory() as directory,
+                self.assertRaises(FailedHookException),
+            ):
+                cookiecutter(
+                    str(recipe),
+                    no_input=True,
+                    output_dir=directory,
+                    extra_context=context,
+                    default_config={"replay_dir": directory},
+                )
+
+    def check_vue_docker(self, project: Path) -> None:
+        command = ["docker", "compose", "--project-name", f"vue-{uuid4().hex[:12]}"]
+
+        def compose(*args: str) -> str:
+            result = subprocess.run(
+                [*command, *args],
+                cwd=project,
+                env={**os.environ, "FRONTEND_PORT": "0"},
+                capture_output=True,
+                text=True,
+                timeout=300,
+                check=False,
+            )
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            return result.stdout.strip()
+
+        try:
+            compose("up", "--build", "--detach", "--wait", "--wait-timeout", "90")
+            self.assertNotEqual(compose("exec", "-T", "frontend", "id", "-u"), "0")
+            address = compose("port", "frontend", "8080")
+            client = build_opener(ProxyHandler({}))
+
+            def get(path: str) -> str:
+                with client.open(f"http://{address}{path}", timeout=10) as response:
+                    return response.read().decode()
+
+            page = get("/")
+            self.assertIn('id="app"', page)
+            self.assertEqual(get("/client/side/route"), page)
+            script = re.search(r'src="([^"]+\.js)"', page)
+            self.assertIsNotNone(script)
+            self.assertTrue(get(script[1]))
+            with self.assertRaises(HTTPError) as error:
+                get("/assets/missing.js")
+            self.assertEqual(error.exception.code, 404)
+        except Exception:
+            print(compose("logs", "--no-color"))
+            raise
+        finally:
+            compose("down", "--volumes", "--remove-orphans", "--rmi", "local")
 
     def check_frontend(self, project: Path) -> None:
         def npm(*args: str) -> subprocess.CompletedProcess[str]:

@@ -4,5 +4,6 @@
   "module_name": "{{ cookiecutter.project_slug.replace('-', '_') }}",
   "description": "A web application built with FastAPI and Vue.",
   "database": ["sqlite", "postgresql"],
-  "_frontend": true
+  "_frontend": true,
+  "_backend": true
 }

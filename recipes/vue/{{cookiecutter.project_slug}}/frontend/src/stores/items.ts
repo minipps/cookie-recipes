@@ -8,7 +8,7 @@ interface Item {
 
 export const useItems = defineStore('items', () => {
   const item = ref<Item | null>(null);
-  const saving = ref(false);
+{% if cookiecutter._backend %}  const saving = ref(false);
   const failed = ref(false);
 
   async function create(name: string) {
@@ -30,4 +30,10 @@ export const useItems = defineStore('items', () => {
   }
 
   return { item, saving, failed, create };
-});
+{% else %}
+  function create(name: string) {
+    item.value = { id: (item.value?.id ?? 0) + 1, name: name.trim() };
+  }
+
+  return { item, create };
+{% endif %}});

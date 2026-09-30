@@ -11,7 +11,9 @@ export function makeI18n() {
         name: 'Item name',
         create: 'Create item',
         saving: 'Saving…',
-        empty: 'Create an item to test the API connection.',
+{% if cookiecutter._backend %}        empty: 'Create an item to test the API connection.',
+{% else %}        empty: 'Create an item. Items are kept in memory until you reload.',
+{% endif %}
         saved: 'Saved item #{id}: {name}',
         error: 'Could not save the item. Please try again.',
       },
@@ -20,7 +22,9 @@ export function makeI18n() {
         name: 'Nombre del elemento',
         create: 'Crear elemento',
         saving: 'Guardando…',
-        empty: 'Crea un elemento para probar la conexión con la API.',
+{% if cookiecutter._backend %}        empty: 'Crea un elemento para probar la conexión con la API.',
+{% else %}        empty: 'Crea un elemento. Los elementos se mantienen en memoria hasta recargar.',
+{% endif %}
         saved: 'Elemento guardado #{id}: {name}',
         error: 'No se pudo guardar el elemento. Inténtalo de nuevo.',
       },

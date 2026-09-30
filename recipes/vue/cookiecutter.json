@@ -1,0 +1,6 @@
+{
+  "project_name": "My App",
+  "project_slug": "{{ cookiecutter.project_name.lower().replace(' ', '-').replace('_', '-') }}",
+  "description": "A Vue application.",
+  "_backend": false
+}
