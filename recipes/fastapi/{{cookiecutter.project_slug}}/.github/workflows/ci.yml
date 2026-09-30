@@ -13,6 +13,24 @@ jobs:
   python:
     runs-on: ubuntu-latest
     timeout-minutes: 10
+{% endraw %}{% if cookiecutter.database == 'postgresql' %}    services:
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_USER: app
+          POSTGRES_PASSWORD: test-password
+          POSTGRES_DB: test
+        ports:
+          - "5432:5432"
+        options: >-
+          --health-cmd "pg_isready -U app -d test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgres://app:test-password@localhost:5432/test
+      TEST_DATABASE_URL: postgres://app:test-password@localhost:5432/test
+{% endif %}{% raw %}
     steps:
       - uses: actions/checkout@v7
       - uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
@@ -43,7 +61,7 @@ jobs:
           python-version: "3.13"
           enable-cache: true
       - run: uv sync --locked
-      - name: Build image and verify SQLite persistence
+      - name: Build image and verify database persistence
         env:
           RUN_DOCKER_TESTS: "1"
         run: uv run --locked python -m unittest discover -s tests -p test_docker.py -v

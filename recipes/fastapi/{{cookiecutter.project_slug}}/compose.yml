@@ -6,10 +6,41 @@ services:
     ports:
       - "127.0.0.1:${PORT:-8000}:8000"
     environment:
+{% if cookiecutter.database == 'postgresql' %}      POSTGRES_HOST: db
+      POSTGRES_PORT: "5432"
+      POSTGRES_USER: ${POSTGRES_USER:-app}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD before starting}
+      POSTGRES_DB: ${POSTGRES_DB:-app}
+    depends_on:
+      db:
+        condition: service_healthy
+{% else %}
       DATABASE_URL: sqlite:///data/db.sqlite3
     volumes:
       - data:/data
+{% endif %}
     restart: unless-stopped
 
+{% if cookiecutter.database == 'postgresql' %}  db:
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-app}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD before starting}
+      POSTGRES_DB: ${POSTGRES_DB:-app}
+    ports:
+      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+{% endif %}
 volumes:
+{% if cookiecutter.database == 'postgresql' %}  postgres-data:
+{% else %}
   data:
+{% endif %}

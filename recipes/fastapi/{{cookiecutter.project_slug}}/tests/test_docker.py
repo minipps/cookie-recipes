@@ -9,15 +9,21 @@ import httpx2
 
 @unittest.skipUnless(os.environ.get("RUN_DOCKER_TESTS") == "1", "Set RUN_DOCKER_TESTS=1")
 class DockerSmokeTest(unittest.TestCase):
-    def test_sqlite_survives_container_replacement(self) -> None:
+    def test_database_survives_container_replacement(self) -> None:
         project = Path(__file__).resolve().parents[1]
         command = ["docker", "compose", "--project-name", f"smoke-{uuid4().hex[:12]}"]
+        environment = {
+            **os.environ,
+            "PORT": "0",
+            "POSTGRES_PORT": "0",
+            "POSTGRES_PASSWORD": f"test:/?#@${uuid4().hex}",
+        }
 
         def compose(*args: str) -> str:
             result = subprocess.run(  # noqa: S603 -- arguments are defined by this test
                 [*command, *args],
                 cwd=project,
-                env={**os.environ, "PORT": "0"},
+                env=environment,
                 capture_output=True,
                 text=True,
                 timeout=300,

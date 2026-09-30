@@ -12,10 +12,11 @@ FROM python:3.13-slim AS runtime
 WORKDIR /app
 ENV PATH=/opt/venv/bin:$PATH \
     PYTHONUNBUFFERED=1 \
-    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONDONTWRITEBYTECODE=1{% if cookiecutter.database == 'sqlite' %} \
     DATABASE_URL=sqlite:///data/db.sqlite3
+{% endif %}
 
-RUN useradd --uid 10001 --create-home app && mkdir /data && chown app:app /data
+RUN useradd --uid 10001 --create-home app{% if cookiecutter.database == 'sqlite' %} && mkdir /data && chown app:app /data{% endif %}
 COPY --from=builder /opt/venv /opt/venv
 COPY --chmod=755 docker/entrypoint.sh /app/entrypoint.sh
 USER app

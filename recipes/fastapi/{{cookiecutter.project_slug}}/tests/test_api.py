@@ -1,3 +1,4 @@
+import os
 import unittest
 
 import httpx2
@@ -8,7 +9,7 @@ from {{ cookiecutter.module_name }}.main import create_app
 
 class ApiSmokeTest(unittest.IsolatedAsyncioTestCase):
     async def test_item_round_trip(self) -> None:
-        app = create_app(database_url="sqlite://:memory:")
+        app = create_app(database_url=os.environ.get("TEST_DATABASE_URL", "sqlite://:memory:"))
         async with app.router.lifespan_context(app):
             await Tortoise.generate_schemas()
             async with httpx2.AsyncClient(

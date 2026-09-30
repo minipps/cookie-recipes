@@ -26,9 +26,9 @@ jobs:
           cache-dependency-glob: "recipes/**/pyproject.toml"
       - name: Recipe test formatting and lint
         run: |
-          uvx ruff check --isolated tests
+          uvx ruff check --isolated --target-version py313 tests
           uvx ruff format --isolated --check --line-length 100 tests
-      - name: Generated project quality gates and Docker persistence
+      - name: SQLite and PostgreSQL recipe gates and Docker persistence
         env:
           RUN_DOCKER_TESTS: "1"
         run: uv run --no-project --with cookiecutter python -m unittest discover -s tests -v

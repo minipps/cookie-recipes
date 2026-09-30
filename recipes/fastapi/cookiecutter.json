@@ -2,5 +2,6 @@
   "project_name": "My API",
   "project_slug": "{{ cookiecutter.project_name.lower().replace(' ', '-').replace('_', '-') }}",
   "module_name": "{{ cookiecutter.project_slug.replace('-', '_') }}",
-  "description": "A Python API built with FastAPI."
+  "description": "A Python API built with FastAPI.",
+  "database": ["sqlite", "postgresql"]
 }

@@ -1,5 +1,7 @@
+import os
 import subprocess
 import tempfile
+import tomllib
 import unittest
 from pathlib import Path
 
@@ -15,6 +17,12 @@ class RecipeTest(unittest.TestCase):
         result = subprocess.run(
             ["uv", *args],
             cwd=project,
+            # Server-free gates use SQLite; Docker tests exercise the selected backend.
+            env={
+                **os.environ,
+                "DATABASE_URL": "sqlite://db.sqlite3",
+                "TEST_DATABASE_URL": "sqlite://:memory:",
+            },
             capture_output=True,
             text=True,
             timeout=600,
@@ -31,6 +39,7 @@ class RecipeTest(unittest.TestCase):
                     "project_name": "Cookie Service",
                     "module_name": "cookie_backend",
                     "description": 'An API with "quotes", apostrophes, and a backslash: \\.',
+                    "database": "postgresql",
                 },
                 "cookie_backend",
             ),
@@ -58,6 +67,16 @@ class RecipeTest(unittest.TestCase):
                 self.assertIn("${{ github.repository }}", release_text)
                 self.assertIn("{{version}}", release_text)
                 self.assertNotIn("{%", release_text)
+                database = context.get("database", "sqlite")
+                dependencies = tomllib.loads((project / "pyproject.toml").read_text())["project"][
+                    "dependencies"
+                ]
+                self.assertEqual(
+                    any("[asyncpg]" in dependency for dependency in dependencies),
+                    database == "postgresql",
+                )
+                compose = load((project / "compose.yml").read_text(), Loader=BaseLoader)
+                self.assertEqual("db" in compose["services"], database == "postgresql")
                 self.run_command(project, "sync")
                 for command in (
                     ("ruff", "format", "--check", "."),
