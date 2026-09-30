@@ -10,6 +10,7 @@ uvx cookiecutter . --directory recipes/fastapi
 
 The recipe includes FastAPI, uv, Ruff, ty, import-linter, HTTPX2, and Tortoise ORM.
 It defaults to Python 3.13 and SQLite, with an example item API, smoke tests, and Docker Compose.
+Generated projects include GitHub CI and a tag-driven release workflow that publishes to GHCR.
 
 Imports follow `api → services → db`, with shared Pydantic schemas in `domain`.
 Import-linter prevents direct API/database imports, reverse dependencies, and framework
@@ -30,3 +31,5 @@ contracts reject forbidden dependencies.
 
 Set `RUN_DOCKER_TESTS=1` on the same command to also build both generated projects' images
 and check SQLite persistence across container replacement. This requires Docker with Compose.
+
+This repository's GitHub CI runs those checks for both the default and renamed project.

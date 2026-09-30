@@ -78,6 +78,27 @@ temporary Compose project and port and removes its containers, image, and volume
 
 Use `uv run ruff format .` and `uv run ruff check --fix .` to apply formatting and safe lint fixes.
 
+## GitHub CI and releases
+
+Commit `uv.lock` and the initial migrations before pushing the generated project to GitHub.
+`.github/workflows/ci.yml` runs formatting, Ruff, ty, import-linter, API tests, and the Docker
+persistence test on pushes to `main` and pull requests. Installs use `uv sync --locked`, so a
+missing or stale lockfile fails CI.
+
+The release workflow runs the same gates, then publishes the image to
+`ghcr.io/<owner>/<repository>` using GitHub's built-in token. No registry secret is needed.
+To release, update `project.version` in `pyproject.toml`, run `uv lock`, commit and push the
+changes, then push a matching stable version tag:
+
+```sh
+git tag v0.1.0
+git push origin v0.1.0
+```
+
+The tag must match the project version. Stable releases receive version, major/minor, and
+`latest` image tags. Publishing an image does not deploy it to a server; pull and run the
+desired version with the same persistent `/data` volume.
+
 ## Architecture
 
 ```text

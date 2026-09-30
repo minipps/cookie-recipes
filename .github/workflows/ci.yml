@@ -1,0 +1,34 @@
+name: Recipe CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  recipes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10
+        with:
+          version: "0.12.19"
+          python-version: "3.13"
+          enable-cache: true
+          cache-dependency-glob: "recipes/**/pyproject.toml"
+      - name: Recipe test formatting and lint
+        run: |
+          uvx ruff check --isolated tests
+          uvx ruff format --isolated --check --line-length 100 tests
+      - name: Generated project quality gates and Docker persistence
+        env:
+          RUN_DOCKER_TESTS: "1"
+        run: uv run --no-project --with cookiecutter python -m unittest discover -s tests -v

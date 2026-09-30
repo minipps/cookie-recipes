@@ -5,6 +5,7 @@ from pathlib import Path
 
 from cookiecutter.exceptions import FailedHookException
 from cookiecutter.main import cookiecutter
+from yaml import BaseLoader, load
 
 RECIPE = Path(__file__).resolve().parents[1] / "recipes" / "fastapi"
 
@@ -48,6 +49,15 @@ class RecipeTest(unittest.TestCase):
                         default_config={"replay_dir": directory},
                     )
                 )
+                workflow_dir = project / ".github" / "workflows"
+                ci = load((workflow_dir / "ci.yml").read_text(), Loader=BaseLoader)
+                release_text = (workflow_dir / "release.yml").read_text()
+                release = load(release_text, Loader=BaseLoader)
+                self.assertIn("workflow_call", ci["on"])
+                self.assertEqual(release["jobs"]["image"]["needs"], "gates")
+                self.assertIn("${{ github.repository }}", release_text)
+                self.assertIn("{{version}}", release_text)
+                self.assertNotIn("{%", release_text)
                 self.run_command(project, "sync")
                 for command in (
                     ("ruff", "format", "--check", "."),
